@@ -2,7 +2,7 @@ name: otel_cockroachdb
 description: >-
   OpenTelemetry instrumentation for cockroachdb by Dartastic.io. Adds standard
   OpenTelemetry observability to applications that use cockroachdb.
-version: 0.1.0-wip
+version: 0.1.0
 repository: https://github.com/dartastic/otel_cockroachdb
 homepage: https://dartastic.io
 
