@@ -1,11 +1,12 @@
-// Licensed under the Dartastic Pro Software License Agreement.
+// Licensed under the Apache License, Version 2.0
 // Copyright 2025-2026 Mindful Software LLC d/b/a Dartastic.io, All rights reserved.
 
-import 'package:dartastic_opentelemetry/dartastic_opentelemetry.dart';
+import 'package:dartastic_opentelemetry_api/dartastic_opentelemetry_api.dart';
 
 import 'otel_cockroachdb_suppression.dart';
 
 class CockroachDBResult {
+  /// Creates a result.
   const CockroachDBResult({
     this.cluster,
     this.database,
@@ -35,8 +36,13 @@ class CockroachDBResult {
   final String? errorMessage;
 }
 
+/// What a traced call returned: the value for the caller plus fields
+/// recorded on the span.
 class CockroachDBCallResult<T> {
+  /// Creates a call result.
   const CockroachDBCallResult({required this.value, this.result});
+
+  /// The value returned to the caller.
   final T value;
   final CockroachDBResult? result;
 }
@@ -44,71 +50,74 @@ class CockroachDBCallResult<T> {
 Future<T> tracedCockroachDB<T>({
   required String operation,
   required Future<CockroachDBCallResult<T>> Function() invoke,
-  Tracer? tracer,
+  APITracer? tracer,
 }) async {
   if (cockroachDBInstrumentationSuppressed()) {
     final r = await invoke();
     return r.value;
   }
-  final t = tracer ?? OTel.tracerProvider().getTracer('otel_cockroachdb');
+  final t = tracer ?? OTelAPI.tracerProvider().getTracer('otel_cockroachdb');
   final span = t.startSpan('cockroachdb $operation', kind: SpanKind.client);
   try {
-    span.addAttributes(OTel.attributes(
-        [OTel.attributeString('db.system.name', 'cockroachdb')]));
+    span.addAttributes(OTelAPI.attributes(
+        [OTelAPI.attributeString('db.system.name', 'cockroachdb')]));
     final r = await invoke();
     final res = r.result;
     if (res != null) {
       if (res.cluster != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('cockroach.cluster', res.cluster!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('cockroach.cluster', res.cluster!)]));
       }
       if (res.database != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('db.namespace', res.database!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('db.namespace', res.database!)]));
       }
       if (res.schema != null) {
-        span.addAttributes(
-            OTel.attributes([OTel.attributeString('db.schema', res.schema!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('db.schema', res.schema!)]));
       }
       if (res.table != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('db.collection.name', res.table!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('db.collection.name', res.table!)]));
       }
       if (res.statementType != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('db.operation.name', res.statementType!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString('db.operation.name', res.statementType!)
+        ]));
       }
       if (res.queryText != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('db.query.text', res.queryText!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('db.query.text', res.queryText!)]));
       }
       if (res.rowsAffected != null) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeInt('db.response.returned_rows', res.rowsAffected!)
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeInt('db.response.returned_rows', res.rowsAffected!)
         ]));
       }
       if (res.retries != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeInt('cockroach.retries', res.retries!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeInt('cockroach.retries', res.retries!)]));
       }
       if (res.region != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('cloud.region', res.region!)]));
+        span.addAttributes(OTelAPI.attributes(
+            [OTelAPI.attributeString('cloud.region', res.region!)]));
       }
       if (res.statusCode != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeInt('http.response.status_code', res.statusCode!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeInt('http.response.status_code', res.statusCode!)
+        ]));
       }
       if (res.errorCode != null) {
-        span.addAttributes(OTel.attributes(
-            [OTel.attributeString('cockroachdb.error.code', res.errorCode!)]));
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString('cockroachdb.error.code', res.errorCode!)
+        ]));
       }
       final fail = res.errorCode != null ||
           (res.statusCode != null && res.statusCode! >= 400);
       if (fail) {
-        span.addAttributes(OTel.attributes([
-          OTel.attributeString(
-              ErrorResource.errorType.key, res.errorCode ?? 'cockroach.error')
+        span.addAttributes(OTelAPI.attributes([
+          OTelAPI.attributeString(
+              ErrorAttributes.errorType.key, res.errorCode ?? 'cockroach.error')
         ]));
         span.setStatus(SpanStatusCode.Error, res.errorMessage);
       }
